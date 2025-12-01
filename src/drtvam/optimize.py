@@ -430,7 +430,7 @@ def optimize(config, patterns_fwd=None):
 
 
     save_histogram(vol_final, target, os.path.join(output, "histogram.png"),
-                   efficiency, iou, thresholds, best_threshold, best_threshold_normalized)
+                   efficiency, iou, thresholds, best_threshold, best_threshold_normalized, absorbed_dose)
 
     return vol_final
 

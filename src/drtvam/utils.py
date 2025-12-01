@@ -120,8 +120,13 @@ def save_vol(vol, path):
     bmp = mi.Bitmap(mi.TensorXf(reshape_grid(vol)))
     bmp.write(path)
 
-def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_threshold, best_threshold_normalized):
-    fig = plt.figure(figsize=(10, 5))
+
+
+
+def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_threshold, best_threshold_normalized, dose):
+    # Set font to Computer Modern and increase size
+    plt.rcParams['font.size'] = 15  # Increase base font size
+    fig = plt.figure(figsize=(11, 6))
     obj_mask = target.numpy().flatten() > 0.
     voxels_final = vol.numpy().flatten()
     bins = np.linspace(0, 1, 500)
@@ -129,14 +134,16 @@ def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_thre
     plt.hist(voxels_final[~obj_mask], bins=500, label="Empty", alpha=0.55)
 
     plt.xlim([0, 1.2])
-    plt.title("pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}, normalized threshold = {:.3f}".\
-              format(efficiency, iou, thresholds[best_threshold],
-                     best_threshold_normalized))
+
+    plt.title(r"pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}".format(
+        efficiency, iou, thresholds[best_threshold]) + "\n" +
+        r"target dose = {:.3f} $\mathrm{{m}}^{{-3}}$".format(dose))
     plt.yscale('log')
     plt.ylabel("# Voxels")
     plt.xlabel("Received dose")
     plt.legend()
     plt.savefig(filename)
+
 
 def discretize(scene, sensor=0):
     """
