@@ -37,17 +37,14 @@ def calculate_absorbed_dose(config, pattern_efficiency, target, vol, patterns):
 
 
     # amount of target voxels times voxel volume to get total volume of target
+    # this is in units of meter
     total_voxel_volume_target = dr.sum(target) * voxel_volume * 1e-3**3
 
     # this ratio value needs to be between 0 and 1
     # it describes how much of the projected intensity is absorbed in the target volume
     # print("ratio", absorbed_intensity_target_drtvam_units / projected_intensity_drtvam_units)
-
-
-    # I am not sure why but it seems like we need to multiply by 1e-3 to get
-    # the units right? but it should be unitless already. But somehow it still
-    # has a millimeter -> meter error in there.
-    ratio = 1e-3 * absorbed_intensity_target_drtvam_units / projected_intensity_drtvam_units
+    # unitless
+    ratio = absorbed_intensity_target_drtvam_units / projected_intensity_drtvam_units
 
     # needs need to be multiplied with total power of DMD times printing_time
     # to obtain J/m^3. Right now the units are 1/m^3
