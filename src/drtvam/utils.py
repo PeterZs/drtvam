@@ -23,6 +23,34 @@ def wasserstein_distance_volumes(target, vol):
     return wasserstein_distance(p, q)
 
 
+def calculate_absorbed_dose(config, pattern_efficiency, target, vol, patterns):
+    pixel_size = config["projector"]["pixel_size"]
+
+    # projected intensity in drtvam units
+    projected_intensity_drtvam_units = dr.sum(patterns) * pixel_size**2
+    voxel_volume = (config["sensor"]["scalex"] / config["sensor"]["film"]["resx"] * \
+                    config["sensor"]["scaley"] / config["sensor"]["film"]["resy"] * \
+                    config["sensor"]["scalez"] / config["sensor"]["film"]["resz"])
+
+    # absorbed intensity in target in drtvam units
+    absorbed_intensity_target_drtvam_units = dr.sum(vol * target) * voxel_volume
+
+
+    # amount of target voxels times voxel volume to get total volume of target
+    # this is in units of meter
+    total_voxel_volume_target = dr.sum(target) * voxel_volume * 1e-3**3
+
+    # this ratio value needs to be between 0 and 1
+    # it describes how much of the projected intensity is absorbed in the target volume
+    # print("ratio", absorbed_intensity_target_drtvam_units / projected_intensity_drtvam_units)
+    # unitless
+    ratio = absorbed_intensity_target_drtvam_units / projected_intensity_drtvam_units
+
+    # needs need to be multiplied with total power of DMD times printing_time
+    # to obtain J/m^3. Right now the units are 1/m^3
+    absorbed_dose = pattern_efficiency * ratio / total_voxel_volume_target
+    return absorbed_dose
+
 
 def bhattacharyya_distance_coefficient(target, vol):
     # Create bins
@@ -89,8 +117,13 @@ def save_vol(vol, path):
     bmp = mi.Bitmap(mi.TensorXf(reshape_grid(vol)))
     bmp.write(path)
 
-def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_threshold, best_threshold_normalized):
-    fig = plt.figure(figsize=(10, 5))
+
+
+
+def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_threshold, best_threshold_normalized, dose):
+    # Set font to Computer Modern and increase size
+    plt.rcParams['font.size'] = 15  # Increase base font size
+    fig = plt.figure(figsize=(11, 6))
     obj_mask = target.numpy().flatten() > 0.
     voxels_final = vol.numpy().flatten()
     bins = np.linspace(0, 1, 500)
@@ -98,14 +131,16 @@ def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_thre
     plt.hist(voxels_final[~obj_mask], bins=500, label="Empty", alpha=0.55)
 
     plt.xlim([0, 1.2])
-    plt.title("pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}, normalized threshold = {:.3f}".\
-              format(efficiency, iou, thresholds[best_threshold],
-                     best_threshold_normalized))
+
+    plt.title(r"pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}".format(
+        efficiency, iou, thresholds[best_threshold]) + "\n" +
+        r"target dose = {:.3f} $\mathrm{{m}}^{{-3}}$".format(dose))
     plt.yscale('log')
     plt.ylabel("# Voxels")
     plt.xlabel("Received dose")
     plt.legend()
     plt.savefig(filename)
+
 
 def discretize(scene, sensor=0):
     """
