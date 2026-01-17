@@ -6,6 +6,15 @@ Being an experimental research framework, Dr.TVAM does not strictly follow the
 strive to document breaking API changes in the release notes below.
 
 
+
+Dr. TVAM 0.7.0
+--------------
+*January 17, 2026*
+
+- Export target dose to histogram. It calculates how much energy is deposit with the optimized patterns. See `[#67] <https://github.com/rgl-epfl/drtvam/pull/67>`_
+- Add more documentation about performance tips
+
+
 Dr. TVAM 0.6.0
 --------------
 *November 19, 2025*
