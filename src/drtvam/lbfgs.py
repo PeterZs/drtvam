@@ -164,7 +164,7 @@ class LinearLBFGS(mi.ad.Optimizer):
         # Update previous state and gradient
         self.state[k] = val, promoted, lr, (s, y, ys, t+1, p, g_p)
 
-    def step(self, vol, loss):
+    def step(self, vol, loss, fwd):
         search_dirs = {}
         # TODO: unravel arrays for dot products
 
@@ -222,9 +222,9 @@ class LinearLBFGS(mi.ad.Optimizer):
 
         for _ in range(self.search_it):
 
-            vol_new = vol + alpha * dvol
+            out = fwd(vol + alpha * dvol)
             mi.Log(mi.LogLevel.Debug, "[drtvam] Calling loss from LBFGS")
-            f_new = self.loss_fn(vol_new, params['projector.active_data'])
+            f_new = self.loss_fn(out[0], params['projector.active_data'], *out[1:])
 
             armijo = (f_new <= loss + c1 * alpha * g_dot_z)
             if dr.all(armijo):
