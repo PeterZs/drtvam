@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "drtvam"
-version = "0.7.0"
+version = "0.8.0"
 authors = [
   { name="Baptiste Nicolet", email="baptiste.nicolet@epfl.ch" },
   { name="Felix Wechsler", email="fxw+git@mailbox.org" },
@@ -16,7 +16,8 @@ dependencies = [
     "numpy",
     "tqdm",
     "matplotlib",
-    "scipy"
+    "scipy",
+    "torch"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
