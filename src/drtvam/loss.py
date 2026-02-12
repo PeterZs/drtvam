@@ -247,7 +247,6 @@ class ThresholdedInhibitorLoss(LossInhibitor):
         super().__init__(props)
         self.K = props.get('K', 2)
         self.M = props.get('M', 4)
-        self.tinhibitor = props.get('tp', 0.1)
         self.tp = props.get('tp', 0.1)
         self.top = props.get('top', 0.2)
         self.tinhibitor = props.get('tinhibitor', 0.2)
@@ -260,12 +259,13 @@ class ThresholdedInhibitorLoss(LossInhibitor):
 
 
     def eval_in(self, x_polymerization, x_inhibitor):
-        return self.weight_object * relu(self.tp - x_polymerization)**self.K +\
-               self.weight_limit * relu(x_polymerization - self.top)**self.K +\
-               self.weight_object * relu(x_inhibitor)**self.K
+        return self.weight_object * relu(self.tp - x_polymerization + x_inhibitor)**self.K +\
+               self.weight_limit * relu(x_polymerization - self.top )**self.K# +\
+               # self.weight_object * relu(x_inhibitor)**self.K
 
     def eval_out(self, x_polymerization, x_inhibitor):
-        return self.weight_void * relu(self.tinhibitor - x_inhibitor)**self.K
+        return self.weight_void * relu(self.tinhibitor - x_inhibitor + x_polymerization)**self.K#+\
+               # self.weight_void * relu(x_polymerization)**self.K
 
     def eval_sparsity(self, patterns):
         return dr.abs(patterns)**self.M * self.weight_sparsity
