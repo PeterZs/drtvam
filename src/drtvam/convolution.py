@@ -1,5 +1,39 @@
 import torch
 import drjit as dr
+import mitsuba as mi
+
+def make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
+                    radiusz=10, radiusx=10, radiusy=10):
+
+    def make_filter(spacing: float, radius: int):
+        indices = dr.arange(mi.Float, -radius, radius + 1)
+        coords  = indices * spacing
+        print(coords)
+        diffusion_kernel = dr.exp(-coords**2 / (4 * diffusion_D * delta_t))
+        norm    = float(dr.sum(diffusion_kernel).item())
+        def f(i):
+            x = i * spacing
+            diffusion_kernel = dr.exp(-x**2 / (4 * diffusion_D * delta_t))
+            return diffusion_kernel / norm
+        return f
+
+
+    # drjit.conv needs 1D separable kernels called
+    # with integer indices based around -2,-1,0,1,2
+    filter_z = make_filter(spacingz, radiusz)
+    filter_x = make_filter(spacingx, radiusx)
+    filter_y = make_filter(spacingy, radiusy)
+
+    print("filter", filter_z(-5), filter_z(0), filter_z(5))
+
+    # this function is called from within the physical model
+    def conv(r):
+        r = dr.convolve(r, filter=filter_z, filter_radius=radiusz, axis=0)
+        r = dr.convolve(r, filter=filter_x, filter_radius=radiusx, axis=1)
+        r = dr.convolve(r, filter=filter_y, filter_radius=radiusy, axis=2)
+        return r
+
+    return conv
 
 
 @dr.wrap(source='drjit', target='torch')
@@ -13,7 +47,7 @@ def convert_volume(volume):
     Returns:
         PyTorch tensor with the same data.
     """
-    return volume ** 2
+    return volume
 
 
 @dr.wrap(source='torch', target='drjit')

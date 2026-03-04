@@ -4,7 +4,7 @@ import mitsuba as mi
 import numpy as np
 import os
 
-from drtvam.diffusion import fft_convolve_3d
+from drtvam.convolution import fft_convolve_3d, make_drjit_conv
 
 def assemble_physical_forward_model(config):
     if "physical_model" in config and config["physical_model"]["type"] == "inhibitor":
@@ -43,16 +43,24 @@ def assemble_physical_forward_model(config):
         assert config['sensor']['film']["resx"] % 2 == 0, "Currently only even number of x slices supported for diffusion model."
         assert config['sensor']['film']["resy"] % 2 == 0, "Currently only even number of y slices supported for diffusion model."
 
-        # endpoint false is required to center kernel correctly
-        x = torch.linspace(-config['sensor']['scalex'] / 2,
-                           config['sensor']['scalex'] / 2,
-                           config['sensor']['film']['resx']+1)[:-1].to('cuda')
-        y = torch.linspace(-config['sensor']['scaley'] / 2,
-                           config['sensor']['scaley'] / 2,
-                           config['sensor']['film']['resy']+1)[:-1].to('cuda')
-        z = torch.linspace(-config['sensor']['scalez'] / 2,
-                           config['sensor']['scalez'] / 2,
-                           config['sensor']['film']['resz']+1)[:-1].to('cuda')
+        spacingz = config['sensor']['scalez'] / config['sensor']['film']['resz']
+        spacingx = config['sensor']['scalex'] / config['sensor']['film']['resx']
+        spacingy = config['sensor']['scaley'] / config['sensor']['film']['resy']
+
+        x = (torch.arange(config['sensor']['film']['resx'], device='cuda')) * spacingx - config['sensor']['scalex'] / 2
+        y = (torch.arange(config['sensor']['film']['resy'], device='cuda')) * spacingy - config['sensor']['scaley'] / 2
+        z = (torch.arange(config['sensor']['film']['resz'], device='cuda')) * spacingz - config['sensor']['scalez'] / 2
+
+        ## endpoint false is required to center kernel correctly
+        #x = torch.linspace(-config['sensor']['scalex'] / 2,
+        #                   config['sensor']['scalex'] / 2,
+        #                   config['sensor']['film']['resx']+1)[:-1].to('cuda')
+        #y = torch.linspace(-config['sensor']['scaley'] / 2,
+        #                   config['sensor']['scaley'] / 2,
+        #                   config['sensor']['film']['resy']+1)[:-1].to('cuda')
+        #z = torch.linspace(-config['sensor']['scalez'] / 2,
+        #                   config['sensor']['scalez'] / 2,
+        #                   config['sensor']['film']['resz']+1)[:-1].to('cuda')
 
         X, Y, Z = torch.meshgrid(z, x, y, indexing='ij')
 
@@ -70,7 +78,17 @@ def assemble_physical_forward_model(config):
         np.save(os.path.join(config["output"], "diffusion_kernel.npy"),
                 np.fft.fftshift(diffusion_kernel_drjit.numpy()))
 
+        print(np.sqrt(diffusion_D * delta_t))
+        # rough estimate of how many pixels the diffusion kernel should cover, based on the diffusion distance
+        radiusz = int(np.sqrt(6 * diffusion_D * delta_t) / spacingz * 9)
+        radiusx = int(np.sqrt(6 * diffusion_D * delta_t) / spacingx * 9)
+        radiusy = int(np.sqrt(6 * diffusion_D * delta_t) / spacingy * 9)
 
+        print("radiusz", radiusz, "radiusx", radiusx, "radiusy", radiusy)
+        conv = lambda x: fft_convolve_3d(x, diffusion_kernel_drjit)
+        # print("drjt")
+        # conv = make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
+        #             radiusz, radiusx, radiusy)
 
         def physical_fwd(light_dose):
             # see https://drjit.readthedocs.io/en/stable/autodiff.html#differentiating-loops
@@ -86,8 +104,7 @@ def assemble_physical_forward_model(config):
                     radicals = light_dose_loop - q_inhibitor
                     polymerization += radicals
                     # Diffusion step
-                    inhibitor = fft_convolve_3d(inhibitor,
-                                                diffusion_kernel_drjit)
+                    inhibitor = conv(inhibitor)
                     i += 1
 
                 return polymerization, inhibitor
