@@ -71,8 +71,8 @@ For more details we refer to this [publication](https://rgl.s3.eu-central-1.amaz
 ## Overprinting
 We have recently extended this project to describe also a variety of overprinting scenarios. See [Overprinting with Tomographic Volumetric Additive Manufacturing](https://github.com/EPFL-LAPD/Overprinting-with-Tomographic-Volumetric-Additive-Manufacturing).
 
-## ⚠️ Sign up for online workshop in late summer 2025
-* The date is not announced yet, but sign up for the announcement: [here](https://forms.office.com/e/3E0SeYUR1X?origin=lprLink)
+## ⚠️ Sign up for online workshop on 6th of May 2026 at 6pm CEST
+* Please sign up here to receive the details: [here](https://forms.office.com/e/3E0SeYUR1X?origin=lprLink)
 
 ## Installation
 
