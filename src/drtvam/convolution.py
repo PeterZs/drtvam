@@ -12,6 +12,8 @@ def make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
         diffusion_kernel = dr.exp(-coords**2 / (4 * diffusion_D * delta_t))
         norm    = float(dr.sum(diffusion_kernel).item())
         def f(i):
+            if abs(i) > radius:
+                return 0.0
             x = i * spacing
             diffusion_kernel = dr.exp(-x**2 / (4 * diffusion_D * delta_t))
             return diffusion_kernel / norm
@@ -23,8 +25,6 @@ def make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
     filter_z = make_filter(spacingz, radiusz)
     filter_x = make_filter(spacingx, radiusx)
     filter_y = make_filter(spacingy, radiusy)
-
-    print("filter", filter_z(-5), filter_z(0), filter_z(5))
 
     # this function is called from within the physical model
     def conv(r):
