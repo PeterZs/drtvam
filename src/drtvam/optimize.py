@@ -14,7 +14,6 @@ from drtvam.utils import wasserstein_distance_volumes, calculate_absorbed_dose
 from drtvam.loss import losses
 from drtvam.lbfgs import LinearLBFGS
 
-from drtvam.diffusion import fft_convolve_3d, convert_volume
 from drtvam.physical_models import assemble_physical_forward_model
 
 
@@ -380,23 +379,25 @@ def optimize(config, patterns_fwd=None):
     np.savez_compressed(os.path.join(output, "patterns_normalized_uint8.npz"), patterns=final_array)
 
 
+    # fix this in future for nicer export
+    # each forward model should have their own export features
+    if "physical_forward_model" in config:
+        for outs in zip(fwd_outputs, ["polymerization", "inhibitor"]):
+            save_vol(outs[0], os.path.join(output, f"final_{outs[1]}.exr"))
+            np.save(os.path.join(output, f"final_{outs[1]}.npy"), outs[0].numpy())
+            # test a range from 0 to 1.3
+            print("Finding threshold for best IoU ...")
+            thresholds = np.linspace(0, 1.3, 100)
+            ious = [iou_loss(polymerization, target, t)[0] for t in tqdm.tqdm(thresholds)]
+            iou = max(ious)
+            best_threshold = np.argmax(np.array(ious))
+            best_threshold_normalized = thresholds[best_threshold] / max_intensity_pattern
+            efficiency = np.sum(normalized_array / normalized_array.size)
 
-    for outs in zip(fwd_outputs, ["polymerization", "inhibitor"]):
-        save_vol(outs[0], os.path.join(output, f"final_{outs[1]}.exr"))
-        np.save(os.path.join(output, f"final_{outs[1]}.npy"), outs[0].numpy())
-        # test a range from 0 to 1.3
-        print("Finding threshold for best IoU ...")
-        thresholds = np.linspace(0, 1.3, 100)
-        ious = [iou_loss(polymerization, target, t)[0] for t in tqdm.tqdm(thresholds)]
-        iou = max(ious)
-        best_threshold = np.argmax(np.array(ious))
-        best_threshold_normalized = thresholds[best_threshold] / max_intensity_pattern
-        efficiency = np.sum(normalized_array / normalized_array.size)
+            absorbed_dose = calculate_absorbed_dose(config_copy, efficiency, target, polymerization, imgs_final)
 
-        absorbed_dose = calculate_absorbed_dose(config_copy, efficiency, target, polymerization, imgs_final)
-
-        save_histogram(outs[0], target, os.path.join(output, "histogram_{}.png".format(outs[1])),
-                       efficiency, iou, thresholds, best_threshold, best_threshold_normalized, absorbed_dose)
+            save_histogram(outs[0], target, os.path.join(output, "histogram_{}.png".format(outs[1])),
+                           efficiency, iou, thresholds, best_threshold, best_threshold_normalized, absorbed_dose)
 
 
     np.save(os.path.join(output, "final.npy"), vol_final.numpy())
