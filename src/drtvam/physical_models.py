@@ -80,15 +80,11 @@ def assemble_physical_forward_model(config):
 
         print(np.sqrt(diffusion_D * delta_t))
         # rough estimate of how many pixels the diffusion kernel should cover, based on the diffusion distance
-        radiusz = int(np.sqrt(6 * diffusion_D * delta_t) / spacingz * 9)
-        radiusx = int(np.sqrt(6 * diffusion_D * delta_t) / spacingx * 9)
-        radiusy = int(np.sqrt(6 * diffusion_D * delta_t) / spacingy * 9)
+        radiusz = int(np.sqrt(6 * diffusion_D * delta_t) / spacingz * 3)
+        radiusx = int(np.sqrt(6 * diffusion_D * delta_t) / spacingx * 3)
+        radiusy = int(np.sqrt(6 * diffusion_D * delta_t) / spacingy * 3)
 
-        print("radiusz", radiusz, "radiusx", radiusx, "radiusy", radiusy)
         conv = lambda x: fft_convolve_3d(x, diffusion_kernel_drjit)
-        # print("drjt")
-        # conv = make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
-        #             radiusz, radiusx, radiusy)
 
         def physical_fwd(light_dose):
             # see https://drjit.readthedocs.io/en/stable/autodiff.html#differentiating-loops
