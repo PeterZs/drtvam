@@ -133,7 +133,7 @@ def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_thre
 
     obj_mask = target.numpy().flatten() > 0.
     voxels_final = vol.numpy().flatten()
-    bins = np.linspace(0, 1, 500)
+    bins = np.linspace(0, 1.2, 100)
 
     plt.hist(voxels_final[obj_mask], bins=bins, label="Object", alpha=0.55, edgecolor='none')
     plt.hist(voxels_final[~obj_mask], bins=bins, label="Empty", alpha=0.55, edgecolor='none')
