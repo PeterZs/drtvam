@@ -16,8 +16,7 @@ dependencies = [
     "numpy",
     "tqdm",
     "matplotlib",
-    "scipy",
-    "torch"
+    "scipy"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
