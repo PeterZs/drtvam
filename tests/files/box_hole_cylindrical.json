@@ -8,7 +8,7 @@
             "ior": 1.40,
             "phase": {"type": "rayleigh"},
             "extinction": 0.1,
-            "albedo": 0.0
+            "albedo": 0.5
         }
     },
     "projector": {
@@ -24,28 +24,27 @@
         "type": "dda",
         "scalex": 5,
         "scaley": 5,
-        "scalez": 1.20,
+        "scalez": 1.25,
         "film": {
             "type": "vfilm",
             "resx": 100,
             "resy": 100,
-            "resz": 24
+            "resz": 50
         }
     },
     "target": {
         "filename": "tests/files/box_hole.ply",
-        "size": 4.0
+        "size": 4.0,
+        "box_center_x": 0,
+        "box_center_y": 0,
+        "box_center_z": 0
     },
         "loss": {
         "type": "threshold",
         "tl": 0.85,
         "tu": 0.95
     },
-    "spp": 1,
-    "spp_ref": 1,
-    "spp_grad": 1,
-    "regular_sampling": true,
-    "transmission_only": true,
     "progressive": true,
     "n_steps": 20
 }
+
