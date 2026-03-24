@@ -18,6 +18,9 @@ def plugin_variant_callback(old, new):
     from . import sensor
     importlib.reload(sensor)
 
+    from . import convolution
+    importlib.reload(convolution)
+
 mi.detail.add_variant_callback(plugin_variant_callback)
 from . import integrators
 
@@ -27,7 +30,7 @@ try:
 except:
     mi.set_variant('llvm_ad_mono')
 
-from . import geometry, motion, loss
+from . import geometry, motion, loss, convolution
 
 def register_geometry(name, cls):
     if name in geometry.geometries:
