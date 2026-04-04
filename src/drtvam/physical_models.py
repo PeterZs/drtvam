@@ -3,7 +3,7 @@ import mitsuba as mi
 import numpy as np
 import os
 
-from drtvam.convolution import fft_convolve_3d, make_drjit_conv
+from drtvam.convolution import make_drjit_conv
 
 def assemble_physical_forward_model(config):
     if "physical_model" in config and config["physical_model"]["type"] == "inhibitor":
