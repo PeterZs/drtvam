@@ -39,52 +39,20 @@ def assemble_physical_forward_model(config):
         diffusion_time = config['print_time']
         diffusion_number_rotations = config['physical_model']['number_time_steps']
 
-        assert config['sensor']['film']["resz"] % 2 == 0, "Currently only even number of z slices supported for diffusion model."
-        assert config['sensor']['film']["resx"] % 2 == 0, "Currently only even number of x slices supported for diffusion model."
-        assert config['sensor']['film']["resy"] % 2 == 0, "Currently only even number of y slices supported for diffusion model."
-
         spacingz = config['sensor']['scalez'] / config['sensor']['film']['resz']
         spacingx = config['sensor']['scalex'] / config['sensor']['film']['resx']
         spacingy = config['sensor']['scaley'] / config['sensor']['film']['resy']
 
-        x = (torch.arange(config['sensor']['film']['resx'], device='cuda')) * spacingx - config['sensor']['scalex'] / 2
-        y = (torch.arange(config['sensor']['film']['resy'], device='cuda')) * spacingy - config['sensor']['scaley'] / 2
-        z = (torch.arange(config['sensor']['film']['resz'], device='cuda')) * spacingz - config['sensor']['scalez'] / 2
-
-        ## endpoint false is required to center kernel correctly
-        #x = torch.linspace(-config['sensor']['scalex'] / 2,
-        #                   config['sensor']['scalex'] / 2,
-        #                   config['sensor']['film']['resx']+1)[:-1].to('cuda')
-        #y = torch.linspace(-config['sensor']['scaley'] / 2,
-        #                   config['sensor']['scaley'] / 2,
-        #                   config['sensor']['film']['resy']+1)[:-1].to('cuda')
-        #z = torch.linspace(-config['sensor']['scalez'] / 2,
-        #                   config['sensor']['scalez'] / 2,
-        #                   config['sensor']['film']['resz']+1)[:-1].to('cuda')
-
-        X, Y, Z = torch.meshgrid(z, x, y, indexing='ij')
-
 
         delta_t = diffusion_time / diffusion_number_rotations
-        r = torch.sqrt(X**2 + Y**2 + Z**2)
 
-        diffusion_kernel = torch.exp(-r**2 / (4 * diffusion_D * delta_t))
-        diffusion_kernel /= torch.sum(diffusion_kernel)
-
-        diffusion_kernel = torch.fft.ifftshift(diffusion_kernel)
-        diffusion_kernel = diffusion_kernel[:, :, :, None]
-
-        diffusion_kernel_drjit = dr.cuda.TensorXf(diffusion_kernel)
-        np.save(os.path.join(config["output"], "diffusion_kernel.npy"),
-                np.fft.fftshift(diffusion_kernel_drjit.numpy()))
-
-        print(np.sqrt(diffusion_D * delta_t))
         # rough estimate of how many pixels the diffusion kernel should cover, based on the diffusion distance
         radiusz = int(np.sqrt(6 * diffusion_D * delta_t) / spacingz * 3)
         radiusx = int(np.sqrt(6 * diffusion_D * delta_t) / spacingx * 3)
         radiusy = int(np.sqrt(6 * diffusion_D * delta_t) / spacingy * 3)
 
-        conv = lambda x: fft_convolve_3d(x, diffusion_kernel_drjit)
+        conv = make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
+            radiusz, radiusx, radiusy)
 
         def physical_fwd(light_dose):
             # see https://drjit.readthedocs.io/en/stable/autodiff.html#differentiating-loops
@@ -111,3 +79,25 @@ def assemble_physical_forward_model(config):
             return (light_dose, )
 
     return physical_fwd
+
+
+
+# legacy torch code to perform convolution
+#       x = (torch.arange(config['sensor']['film']['resx'], device='cuda')) * spacingx - config['sensor']['scalex'] / 2
+        # y = (torch.arange(config['sensor']['film']['resy'], device='cuda')) * spacingy - config['sensor']['scaley'] / 2
+        # z = (torch.arange(config['sensor']['film']['resz'], device='cuda')) * spacingz - config['sensor']['scalez'] / 2
+        # X, Y, Z = torch.meshgrid(z, x, y, indexing='ij')
+
+        # delta_t = diffusion_time / diffusion_number_rotations
+        # r = torch.sqrt(X**2 + Y**2 + Z**2)
+
+        # diffusion_kernel = torch.exp(-r**2 / (4 * diffusion_D * delta_t))
+        # diffusion_kernel /= torch.sum(diffusion_kernel)
+
+        # diffusion_kernel = torch.fft.ifftshift(diffusion_kernel)
+        # diffusion_kernel = diffusion_kernel[:, :, :, None]
+
+        # diffusion_kernel_drjit = dr.cuda.TensorXf(diffusion_kernel)
+        # np.save(os.path.join(config["output"], "diffusion_kernel.npy"),
+        #         np.fft.fftshift(diffusion_kernel_drjit.numpy()))
+        # conv = lambda x: fft_convolve_3d(x, diffusion_kernel_drjit)
