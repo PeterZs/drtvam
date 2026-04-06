@@ -84,10 +84,10 @@ class ThresholdedLoss(Loss):
     Thresholded loss following Wechsler et al 2024.
 
     The loss is defined as:
-    L(x, patterns) = weight_object * relu(tu - x)^K +
-                     weight_void * relu(x - tl)^K +
-                     weight_limit * relu(x - 1)^K +
-                     patterns * weight_sparsity
+    L(x, patterns) = sum(weight_object * relu(tu - x[object_region])^K +
+                     weight_void * relu(x[void_region] - tl)^K +
+                     weight_limit * relu(x[object_region] - 1)^K +
+                     patterns * weight_sparsity)
 
     where:
     - x is the intensity distribution in the printing region
@@ -132,7 +132,122 @@ class ThresholdedLoss(Loss):
                 self.eval_sparsity(patterns)
 
 
+class LossInhibitor:
+    def __init__(self, props):
+        reduction = props.get('reduction', 'sum')
+        if reduction == 'sum':
+            self.reduction = dr.sum
+        elif reduction == 'mean':
+            self.reduction = dr.mean
+        else:
+            raise ValueError(f"Invalid reduction method: '{reduction}'.")
+
+    def eval_in(self, x):
+        raise NotImplementedError
+
+    def eval_out(self, x):
+        raise NotImplementedError
+
+    def eval(self, x, target, patterns):
+        raise NotImplementedError
+
+    def __call__(self, x, target, patterns, x_inhibitor):
+        if x.shape != target.shape:
+            if len(x.shape) == len(target.shape) + 1 and x.shape[-1] == 1:
+                # we expect the last dimension to have 1 or 2 channels
+                target = target[..., None]
+            else:
+                raise ValueError(f"Input and target shapes do not match: \
+                                 {x.shape} != {target.shape}")
+
+        if target.shape[-1] == 1:  # binary or grayscale target
+            loss, loss_patterns = self.eval(x, target, patterns, x_inhibitor)
+        elif target.shape[-1] == 2:  # Surface-aware discretization
+            # Here, the target defines the fractional inside/outside
+            # volumes of individual voxels.
+            w_in = target[..., 0] / (target[..., 0] + target[..., 1])
+            w_out = target[..., 1] / (target[..., 0] + target[..., 1])
+
+            loss = w_in * self.eval_in(x[..., 0]) +\
+                w_out * self.eval_out(x[..., 1])
+            loss_patterns = self.eval_sparsity(patterns)
+        else:
+            raise ValueError(f"[Loss] Received tensors of invalid shape: \
+                             {target.shape}. The last dimension should be\
+                             either 1 or 2.")
+
+        mi.Log(mi.LogLevel.Debug, "loss_patterns {}".format(\
+               self.reduction(loss_patterns, axis=None)))
+
+        # loss_patterns and loss are still arrays but with different shapes.
+        # Hence separate reduction
+        return self.reduction(loss, axis=None) +\
+            self.reduction(loss_patterns, axis=None)
+
+
+class ThresholdedInhibitorLoss(LossInhibitor):
+    """
+    Thresholded loss which includes explicit inhibitor following Wechsler et al 2026.
+
+    The loss is defined as:
+    L(x_polymerization, x_inhibitor, patterns) =
+        weight_object * relu(tp - x_polymerization[object_region] + x_inhibitor[object_region])^K +
+        weight_void * relu(tinhibitor - x_inhibitor[void_region] + x_polymerization[void_region])^K +
+        weight_limit * relu(x_polymerization[object_region] - top)^K +
+        patterns * weight_sparsity
+
+    where:
+    - x_polymerization is the concentration of the polymerization
+    - x_inhibitor is the concentration of the inhibitor
+    - tp is the threshold for the polymerization term, by default 0.1
+    - tinhibitor is the threshold for the inhibitor term, by default 0.2
+    - top is the threshold for the overpolymerization term, by default 0.2
+    - weight_object and weight_void are the weights for the object/void regions
+    - weight_limit is the limit for the overpolymerization term
+    - K is the exponent for the loss function, by default 2
+    - M is the exponent for the sparsity term, by default 4
+    - weight_sparsity is the weight for the sparsity term, by default 0
+
+    """
+    def __init__(self, props):
+        super().__init__(props)
+        self.K = props.get('K', 2)
+        self.M = props.get('M', 4)
+        self.tp = props.get('tp', 0.1)
+        self.top = props.get('top', 0.2)
+        self.tinhibitor = props.get('tinhibitor', 0.2)
+        # put a different weight for the object and void regions
+        self.weight_object = props.get('weight_object', 1)
+        self.weight_void = props.get('weight_void', 1)
+        self.weight_limit = props.get('weight_limit', 1)
+        # by default no sparsity
+        self.weight_sparsity = props.get('weight_sparsity', 0)
+
+
+    def eval_in(self, x_polymerization, x_inhibitor):
+        return self.weight_object * relu(self.tp - x_polymerization + x_inhibitor)**self.K +\
+               self.weight_limit * relu(x_polymerization - self.top )**self.K# +\
+               # self.weight_object * relu(x_inhibitor)**self.K
+
+    def eval_out(self, x_polymerization, x_inhibitor):
+        return self.weight_void * relu(self.tinhibitor - x_inhibitor + x_polymerization)**self.K#+\
+               # self.weight_void * relu(x_polymerization)**self.K
+
+    def eval_sparsity(self, patterns):
+        return dr.abs(patterns)**self.M * self.weight_sparsity
+
+    def eval(self, x_polymerization, target, patterns, x_inhibitor):
+        # target should be a binary inside/outside mask
+        return dr.select(target > 0, self.eval_in(x_polymerization, x_inhibitor),
+                         self.eval_out(x_polymerization, x_inhibitor)),\
+                self.eval_sparsity(patterns)
+
+
+
+
+
 losses = {
     'l2': L2Loss,
     'threshold': ThresholdedLoss,
+    "threshold_inhibitor": ThresholdedInhibitorLoss
 }

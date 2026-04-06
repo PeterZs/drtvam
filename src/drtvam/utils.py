@@ -122,24 +122,40 @@ def save_vol(vol, path):
 
 def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_threshold, best_threshold_normalized, dose):
     # Set font to Computer Modern and increase size
-    plt.rcParams['font.size'] = 15  # Increase base font size
-    fig = plt.figure(figsize=(11, 6))
+    plt.rcParams['font.size'] = 16
+    plt.rcParams['axes.labelsize'] = 18
+    plt.rcParams['axes.titlesize'] = 18
+    plt.rcParams['xtick.labelsize'] = 16
+    plt.rcParams['ytick.labelsize'] = 16
+    plt.rcParams['legend.fontsize'] = 16
+
+    fig = plt.figure(figsize=(12, 7), dpi=300)  # Increased DPI for higher quality
+
     obj_mask = target.numpy().flatten() > 0.
     voxels_final = vol.numpy().flatten()
-    bins = np.linspace(0, 1, 500)
-    plt.hist(voxels_final[obj_mask], bins=500, label="Object", alpha=0.55)
-    plt.hist(voxels_final[~obj_mask], bins=500, label="Empty", alpha=0.55)
+    bins = np.linspace(0, 1.2, 100)
+
+    plt.hist(voxels_final[obj_mask], bins=bins, label="Object", alpha=0.55, edgecolor='none')
+    plt.hist(voxels_final[~obj_mask], bins=bins, label="Empty", alpha=0.55, edgecolor='none')
 
     plt.xlim([0, 1.2])
 
-    plt.title(r"pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}".format(
+    plt.title(r"Pattern energy efficiency = {:.4f}, IoU = {:.4f} at threshold = {:.3f}".format(
         efficiency, iou, thresholds[best_threshold]) + "\n" +
-        r"target dose = {:.3f} $\mathrm{{m}}^{{-3}}$".format(dose))
+        r"Target dose = {:.3f} $\mathrm{{m}}^{{-3}}$".format(dose), pad=20)
+
     plt.yscale('log')
-    plt.ylabel("# Voxels")
-    plt.xlabel("Received dose")
-    plt.legend()
-    plt.savefig(filename)
+    plt.ylabel("# Voxels", labelpad=10)
+    plt.xlabel("Received dose", labelpad=10)
+    plt.legend(framealpha=0.9)
+    plt.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+    plt.tight_layout()
+
+    # Save as both PDF and PNG
+    base_filename = filename.rsplit('.', 1)[0]
+    plt.savefig(f"{base_filename}.pdf", dpi=300, bbox_inches='tight', format='pdf')
+    plt.savefig(f"{base_filename}.png", dpi=300, bbox_inches='tight', facecolor='white', format='png')
+    plt.close(fig)
 
 
 def discretize(scene, sensor=0):

@@ -14,6 +14,11 @@ from drtvam.utils import wasserstein_distance_volumes, calculate_absorbed_dose
 from drtvam.loss import losses
 from drtvam.lbfgs import LinearLBFGS
 
+from drtvam.physical_models import assemble_physical_forward_model
+
+
+
+
 import copy
 
 def load_scene(config):
@@ -156,7 +161,7 @@ def optimize(config, patterns_fwd=None):
 
     patterns_key = 'projector.active_data'
 
-    if filter_radon and patterns_fwd is None:
+    if filter_radon:
         # Deactivate pixels where the Radon transform is zero
         radon_integrator = mi.load_dict({
             'type': 'radon',
@@ -204,6 +209,9 @@ def optimize(config, patterns_fwd=None):
         dr.sync_thread()
 
 
+    physical_forward_model = assemble_physical_forward_model(config_copy)
+
+
     # If not using the surface-aware discretization, we don't need the target shape anymore, so we just move it far away
     if not surface_aware:
         params['target.vertex_positions'] += 1e5
@@ -235,8 +243,8 @@ def optimize(config, patterns_fwd=None):
             vol = mi.render(scene, params, integrator=integrator, sensor=sensor, spp=spp, spp_grad=spp_grad, seed=i)
             return vol
 
-        def loss_fn2(y, patterns):
-            return loss_fn(y, target, patterns)
+        def loss_fn2(y, patterns, *args):
+            return loss_fn(y, target, patterns, *args)
 
         opt = LinearLBFGS(loss_fn=loss_fn2, render_fn=render_fn)
 
@@ -258,7 +266,7 @@ def optimize(config, patterns_fwd=None):
 
     if patterns_fwd is not None:
         print("Using provided patterns for forward mode.")
-        params['projector.active_data'] = patterns_fwd.flatten()
+        params['projector.active_data'] = patterns_fwd.flatten()[active_pixels]
         params.update()
 
     elif "psf_analysis" in config:
@@ -303,7 +311,8 @@ def optimize(config, patterns_fwd=None):
         return vol_final
     else:
         print("Optimizing patterns...")
-        for i in trange(n_steps):
+        pbar = trange(n_steps)
+        for i in pbar:
             if progressive and i == 5:
                 integrator.max_depth = max_depth
 
@@ -311,11 +320,17 @@ def optimize(config, patterns_fwd=None):
                 params.update(opt)
 
                 vol = mi.render(scene, params, integrator=integrator, sensor=sensor, spp=spp, spp_grad=spp_grad, seed=i)
-                dr.schedule(vol)
+
+                # output might be just the vol or something more complicated
+                # with inhibitors
+                fwd_outputs = physical_forward_model(vol)
 
                 mi.Log(mi.LogLevel.Debug, "[drtvam] Calling loss from optimize loop")
-                loss = loss_fn(vol, target, params['projector.active_data'])
+                loss = loss_fn(fwd_outputs[0], target, params['projector.active_data'],
+                               *fwd_outputs[1:])
                 dr.eval(loss)
+                # Update progress bar with loss
+                pbar.set_postfix(loss=loss.numpy())
 
                 # numpy conversion is necessary to store the loss value
                 # apparently in just loss.numpy() is deprecated since (Deprecated NumPy 1.25.)
@@ -331,7 +346,7 @@ def optimize(config, patterns_fwd=None):
                     break
 
                 if optim_type == 'lbfgs':
-                    opt.step(vol, loss)
+                    opt.step(vol, loss, physical_forward_model)
                 else:
                     opt.step()
 
@@ -345,20 +360,12 @@ def optimize(config, patterns_fwd=None):
 
     print("Rendering final state...")
     vol_final = mi.render(scene, params, spp=spp_ref, integrator=integrator_final, sensor=final_sensor)
+    fwd_outputs = physical_forward_model(vol_final)
+    polymerization = fwd_outputs[0]
 
-    np.save(os.path.join(output, "final.npy"), vol_final.numpy())
-    save_vol(vol_final, os.path.join(output, "final.exr"))
-
-    np.save(os.path.join(output, "loss.npy"), loss_hist)
-    np.save(os.path.join(output, "timing.npy"), timing_hist)
 
     imgs_final = scene.emitters()[0].patterns()
     dr.eval(imgs_final)
-
-    print("Saving images...")
-    for i in trange(imgs_final.shape[0]):
-        save_img(imgs_final[i], os.path.join(output, "patterns", f"{i:04d}.exr"))
-    np.savez_compressed(os.path.join(output, "patterns.npz"), patterns=imgs_final.numpy())
 
     # save also the compressed version normalized to [0, 255]
     # Step 1: Normalize the array to [0, 1]
@@ -370,6 +377,41 @@ def optimize(config, patterns_fwd=None):
     # Step 3: Convert to np.uint8
     final_array = scaled_array.astype(np.uint8)
     np.savez_compressed(os.path.join(output, "patterns_normalized_uint8.npz"), patterns=final_array)
+
+
+    # fix this in future for nicer export
+    # each forward model should have their own export features
+    if "physical_forward_model" in config:
+        for outs in zip(fwd_outputs, ["polymerization", "inhibitor"]):
+            save_vol(outs[0], os.path.join(output, f"final_{outs[1]}.exr"))
+            np.save(os.path.join(output, f"final_{outs[1]}.npy"), outs[0].numpy())
+            # test a range from 0 to 1.3
+            print("Finding threshold for best IoU ...")
+            thresholds = np.linspace(0, 1.3, 100)
+            ious = [iou_loss(polymerization, target, t)[0] for t in tqdm.tqdm(thresholds)]
+            iou = max(ious)
+            best_threshold = np.argmax(np.array(ious))
+            best_threshold_normalized = thresholds[best_threshold] / max_intensity_pattern
+            efficiency = np.sum(normalized_array / normalized_array.size)
+
+            absorbed_dose = calculate_absorbed_dose(config_copy, efficiency, target, polymerization, imgs_final)
+
+            save_histogram(outs[0], target, os.path.join(output, "histogram_{}.png".format(outs[1])),
+                           efficiency, iou, thresholds, best_threshold, best_threshold_normalized, absorbed_dose)
+
+
+    np.save(os.path.join(output, "final.npy"), vol_final.numpy())
+    save_vol(vol_final, os.path.join(output, "final.exr"))
+
+    np.save(os.path.join(output, "loss.npy"), loss_hist)
+    np.save(os.path.join(output, "timing.npy"), timing_hist)
+
+
+    print("Saving images...")
+    for i in trange(imgs_final.shape[0]):
+        save_img(imgs_final[i], os.path.join(output, "patterns", f"{i:04d}.exr"))
+    np.savez_compressed(os.path.join(output, "patterns.npz"), patterns=imgs_final.numpy())
+
 
     # save a high resolution in case of surface aware since the resolution
     # might be low of target.exr/npy
@@ -385,15 +427,12 @@ def optimize(config, patterns_fwd=None):
     # test a range from 0 to 1.3
     print("Finding threshold for best IoU ...")
     thresholds = np.linspace(0, 1.3, 300)
-    ious = [iou_loss(vol_final, target, t)[0] for t in tqdm.tqdm(thresholds)]
+    ious = [iou_loss(polymerization, target, t)[0] for t in tqdm.tqdm(thresholds)]
     iou = max(ious)
     best_threshold = np.argmax(np.array(ious))
-    # best print
-    bhat_dist, bhat_coef = bhattacharyya_distance_coefficient(target, vol_final)
 
     print("Best IoU: {:.4f}".format(iou))
     print("Best threshold: {:4f}".format(thresholds[best_threshold]))
-
 
     # depending on the loss function the maximum pixel might be different
     # With a DMD in practice, this means the real printing time is different
@@ -413,8 +452,6 @@ def optimize(config, patterns_fwd=None):
         "best_threshold": float(thresholds[best_threshold]),
         "best_threshold_normalized": float(best_threshold_normalized),
         "max_intensity_pattern": float(max_intensity_pattern),
-        "bhattacharyya_distance": float(bhat_dist),
-        "bhattacharyya_coefficient": float(bhat_coef),
         "relative_time": float(1 / best_threshold_normalized),
         "numerical_absorbed_dose_per_cubicmeter": float(absorbed_dose)
     }
