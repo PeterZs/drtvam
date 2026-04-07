@@ -6,6 +6,12 @@ Being an experimental research framework, Dr.TVAM does not strictly follow the
 strive to document breaking API changes in the release notes below.
 
 
+Dr. TVAM 0.8.0
+--------------
+*April 07, 2026*
+
+- Add more flexible way to include a physical model. See `[#69] <https://github.com/rgl-epfl/drtvam/pull/69>`_
+- No documentation added yet but one example how to use it, is given here: https://github.com/EPFL-LAPD/The-Pandoro-Effect-in-Tomographic-Volumetric-Additive-Manufacturing
 
 Dr. TVAM 0.7.0
 --------------
