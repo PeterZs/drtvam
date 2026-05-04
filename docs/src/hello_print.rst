@@ -23,7 +23,7 @@ The pattern optimization can be computational quite demanding, so we recommend t
 
 Simple example
 --------------
-Download the 3D Benchy file :download:`target shape <resources/benchy.ply>` to get started. Then, create a file named ``config.json`` with the content below, and replace the ``filename`` field with the path to the downloaded file.
+Download the 3D Benchy file :download:`target shape <resources/benchy.ply>` to get started. Then, create a file named ``config.json`` with the content below.
 
 To launch the optimization, run the following command in the terminal (Anaconda terminal, PowerShell, or any terminal of your choice where the Python environment is activated):
 
