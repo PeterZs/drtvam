@@ -23,7 +23,6 @@ def assemble_physical_forward_model(config):
             return polymerization, inhibitor
 
     elif "physical_model" in config and config["physical_model"]["type"] == "inhibitor_diffusion":
-        print(config["physical_model"])
         inhibitor_0 = dr.ones(mi.TensorXf,
                               shape=(config["sensor"]["film"]["resz"],
                                      config["sensor"]["film"]["resx"],

@@ -381,7 +381,7 @@ def optimize(config, patterns_fwd=None):
 
     # fix this in future for nicer export
     # each forward model should have their own export features
-    if "physical_forward_model" in config:
+    if "physical_model" in config:
         for outs in zip(fwd_outputs, ["polymerization", "inhibitor"]):
             save_vol(outs[0], os.path.join(output, f"final_{outs[1]}.exr"))
             np.save(os.path.join(output, f"final_{outs[1]}.npy"), outs[0].numpy())
