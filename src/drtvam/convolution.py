@@ -7,7 +7,6 @@ def make_drjit_conv(spacingz, spacingx, spacingy, diffusion_D, delta_t,
     def make_filter(spacing: float, radius: int):
         indices = dr.arange(mi.Float, -radius, radius + 1)
         coords  = indices * spacing
-        print(coords)
         diffusion_kernel = dr.exp(-coords**2 / (4 * diffusion_D * delta_t))
         norm    = float(dr.sum(diffusion_kernel).item())
         def f(i):
