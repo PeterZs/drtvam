@@ -38,7 +38,7 @@ So if we multiply all values, we obtain the theoretical correct volumetric dose 
 
 .. math::
 
-   \text{Energy dose} = \text{Target dose} \times \text{Projection power} \times \text{Printing time} =\\ 33954\ \frac{1}{\mathrm{m}^3} \times 0.1\ \mathrm{W} \times 10\ \mathrm{s} = 33954\ \frac{\mathrm{J}}{\mathrm{m}^3} = 33\ \frac{\mathrm{mJ}}{\mathrm{m}^3}
+   \text{Energy dose} = \text{Target dose} \times \text{Projection power} \times \text{Printing time} =\\ 33954\ \frac{1}{\mathrm{m}^3} \times 0.1\ \mathrm{W} \times 10\ \mathrm{s} = 33954\ \frac{\mathrm{J}}{\mathrm{m}^3} = 33\ \frac{\mathrm{mJ}}{\mathrm{cm}^3}
 
 
 
