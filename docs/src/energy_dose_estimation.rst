@@ -16,12 +16,12 @@ This cannot be done by a simple analytical equation as TVAM patterns are designe
 
 In principle the steps are:
 
-1. For the set of patterns we know the energy efficiency which is the fraction of the projection power that is actually transmitted through the projector. This tells us how much energy is actually projected into the resin.
+1. For the set of patterns we know the energy efficiency which is the fraction of the projection power that is actually transmitted through the projector. This tells us how much energy is actually projected into the resin. Note, not all energy is used for actualy target polymerization as some light is transmitted and some light is absorbed in void voxels.
 2. With Dr.TVAM we know the amount of absorbed energy in object voxels and the amount transmitted through the object voxels.
-3. We can sum up the energy dose of all object voxels and can divide it by the total volume of the object to get the average energy dose in ``1/cm^3``.
-4. Finally, this `dimensionless` energy dose can be multiplied by total projector power and printing time to get the energy dose in ``J/cm^3``.
+3. We can sum up the energy dose of all object voxels and can divide it by the total volume of the object voxels to get the average energy dose in ``1/cm^3``.
+4. Finally, this `dimensionless` energy dose can be multiplied by total projector power and printing time to get the energy dose in ``W * s / cm^3 = J/cm^3``.
 
-This results in an _average_ energy dose of the object voxels. Since the typical TVAM energy dose is not perfectly homogenous (e.g. 0.9 to 1), some parts can receive often 10% more energy than the average, while other parts receive 10% less energy than the average.
+This results in an *average* energy dose of the object voxels. Since the typical TVAM energy dose is not perfectly homogenous (e.g. 0.9 to 1), some parts can receive often 10% more energy than the average, while other parts receive 10% less energy than the average.
 
 
 Specific example
