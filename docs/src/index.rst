@@ -111,6 +111,7 @@ When using Dr.TVAM in academic projects, please cite the associated publications
     basic_usage
     tutorials
     plugin_doc
+    references
 
 Indices and tables
 ==================

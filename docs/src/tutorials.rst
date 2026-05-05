@@ -15,7 +15,9 @@ For beginners, we recommend starting with the ``real_world_example.rst`` and the
 .. toctree::
     :maxdepth: 1
 
+    hello_print.rst 
     real_world_example.rst 
+    energy_dose_estimation.rst 
     performance_tips.rst
     sparsity_optimization.rst
     projector_calibration.rst 
