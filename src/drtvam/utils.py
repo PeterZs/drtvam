@@ -54,7 +54,7 @@ def calculate_absorbed_dose(config, pattern_efficiency, target, vol, patterns):
 
 def bhattacharyya_distance_coefficient(target, vol):
     # Create bins
-    num_bins = 1000
+    num_bins = 100
     bins = np.linspace(0, 1.5, num_bins)
 
     obj_mask = target.numpy().flatten() > 0.
@@ -133,7 +133,7 @@ def save_histogram(vol, target, filename, efficiency, iou, thresholds, best_thre
 
     obj_mask = target.numpy().flatten() > 0.
     voxels_final = vol.numpy().flatten()
-    bins = np.linspace(0, 1.2, 100)
+    bins = np.linspace(0, 1.2, 200)
 
     plt.hist(voxels_final[obj_mask], bins=bins, label="Object", alpha=0.55, edgecolor='none')
     plt.hist(voxels_final[~obj_mask], bins=bins, label="Empty", alpha=0.55, edgecolor='none')
