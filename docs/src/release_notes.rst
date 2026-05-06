@@ -5,6 +5,11 @@ Being an experimental research framework, Dr.TVAM does not strictly follow the
 `Semantic Versioning <https://semver.org/>`_ convention. That said, we will
 strive to document breaking API changes in the release notes below.
 
+Dr. TVAM 0.8.1
+--------------
+*May 06, 2026*
+
+- Fix some bugs and add more documentation
 
 Dr. TVAM 0.8.0
 --------------
