@@ -8,6 +8,34 @@ Dr.TVAM has been used and verified in a few different publications already.
 2026
 ----
 
+Wechsler, F., Sgarminato, V., Rizzo, R. et al. Overprinting with tomographic volumetric additive manufacturing. Nat Commun (2026). https://doi.org/10.1038/s41467-026-73477-3
+`Open Access link <https://www.nature.com/articles/s41467-026-73477-3>`_ .
+
+.. raw:: html
+
+   <details>
+   <summary><a>Bibtex (click to expand)</a></summary>
+
+.. code-block:: bash
+
+   @article{Wechsler_Sgarminato_Rizzo_Nicolet_Jakob_Moser_2025, title={Overprinting with tomographic volumetric additive manufacturing}, 
+      rights={2026 The Author(s)}, 
+      ISSN={2041-1723}, 
+      url={https://www.nature.com/articles/s41467-026-73477-3}, 
+      DOI={10.1038/s41467-026-73477-3}, 
+      journal={Nature Communications},
+      publisher={Nature Publishing Group},
+      author={Wechsler, Felix and Sgarminato, Viola and Rizzo, Riccardo and Nicolet, Baptiste and Jakob, Wenzel and Moser, Christophe},
+      year={2026},
+      month=jun,
+      language={en} 
+   }
+
+.. raw:: html
+
+   </details>
+
+
 Rizzo, R., Sgarminato, V., Wechsler, F., & Moser, C. (2026). Tomographic Printing in a Chip: A Versatile Platform for Biomimetic 3D Organ-on-Chip. bioRxiv, 2026-02.
 `Preprint <https://www.biorxiv.org/content/10.64898/2026.02.26.708161v2.abstract>`_
 
@@ -86,35 +114,6 @@ Unlu, B., Wechsler, F., Pu, Y., & Moser, C. (2026). A unified multiscale 3D prin
           primaryClass={physics.optics},
           url={https://arxiv.org/abs/2601.13457}, 
     }
-.. raw:: html
-
-   </details>
-
-
-
-
-2025
-----
-Wechsler, F., Sgarminato, V., Rizzo, R., Nicolet, B., Jakob, W., & Moser, C. (2025). Overprinting with Tomographic Volumetric Additive Manufacturing. arXiv preprint arXiv:2507.13842.
-`Preprint <https://arxiv.org/abs/2507.13842>`_.
-
-.. raw:: html
-
-   <details>
-   <summary><a>Bibtex (click to expand)</a></summary>
-
-.. code-block:: bash
-
-    @misc{wechsler2025overprintingtomographicvolumetricadditive,
-      title={Overprinting with Tomographic Volumetric Additive Manufacturing}, 
-      author={Felix Wechsler and Viola Sgarminato and Riccardo Rizzo and Baptiste Nicolet and Wenzel Jakob and Christophe Moser},
-      year={2025},
-      eprint={2507.13842},
-      archivePrefix={arXiv},
-      primaryClass={physics.optics},
-      url={https://arxiv.org/abs/2507.13842}, 
-    }
-
 .. raw:: html
 
    </details>
